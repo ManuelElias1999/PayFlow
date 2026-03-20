@@ -62,10 +62,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (!window.ethereum) {
       throw new Error('MetaMask not found');
     }
-
+  
     const provider = new BrowserProvider(window.ethereum);
     const accounts = await provider.send('eth_requestAccounts', []);
-
+  
     if (accounts.length > 0) {
       setWalletAddress(accounts[0]);
       setWalletConnected(true);

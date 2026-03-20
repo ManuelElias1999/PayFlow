@@ -106,7 +106,12 @@ export const Approve: React.FC = () => {
     <div className="min-h-screen bg-slate-50">
       <header className="border-b bg-white">
         <div className="max-w-7xl mx-auto px-6 py-4">
-          <h1 className="text-2xl font-semibold text-slate-900">PayFlow</h1>
+        <button
+          onClick={() => navigate('/dashboard')}
+          className="text-2xl font-semibold text-slate-900 hover:text-blue-600 transition-colors"
+        >
+          PayFlow
+        </button>
         </div>
       </header>
 

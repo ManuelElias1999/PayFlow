@@ -2,159 +2,195 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { useApp } from '../context/AppContext';
 import { Button } from '../components/ui/button';
+import { Input } from '../components/ui/input';
+import { Label } from '../components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
-import { ProgressStepper } from '../components/ProgressStepper';
-import { Check, Loader2, Shield, Wallet } from 'lucide-react';
+import { Wallet, Building2, Loader2 } from 'lucide-react';
+import { getPayrollContract, getAccount } from '../lib/web3';
 
-export const Approve: React.FC = () => {
-  const { walletAddress, company, usdcApproved, approveUSDC, walletConnected } = useApp();
+export const Onboarding: React.FC = () => {
+  const { walletAddress, walletConnected } = useApp();
   const navigate = useNavigate();
-  const [isApproving, setIsApproving] = useState(false);
+
+  const [formData, setFormData] = useState({
+    name: '',
+    country: '',
+    fundingChain: 'Injective',
+  });
+
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState('');
 
   useEffect(() => {
-    if (!walletConnected || !company) {
-      navigate('/');
-    } else if (usdcApproved) {
-      navigate('/dashboard');
-    }
-  }, [walletConnected, company, usdcApproved, navigate]);
+    const checkCompany = async () => {
+      if (!walletConnected) {
+        navigate('/');
+        return;
+      }
 
-  const handleApprove = () => {
-    setIsApproving(true);
-    approveUSDC();
-    setTimeout(() => {
-      setIsApproving(false);
-      navigate('/dashboard');
-    }, 1500);
+      try {
+        const account = await getAccount();
+        const payroll = await getPayrollContract(false);
+        const company = await payroll.companies(account);
+
+        if (company.isRegistered) {
+          navigate('/approve');
+        }
+      } catch (err) {
+        console.error('Error checking company:', err);
+      }
+    };
+
+    checkCompany();
+  }, [walletConnected, navigate]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+
+    if (!formData.name || !formData.country) return;
+
+    try {
+      setIsSubmitting(true);
+
+      const payroll = await getPayrollContract(true);
+      const tx = await payroll.registerCompany(
+        formData.name,
+        formData.country,
+        formData.fundingChain
+      );
+
+      await tx.wait();
+      navigate('/approve');
+    } catch (err: any) {
+      console.error(err);
+      setError(err?.reason || err?.message || 'Failed to register company');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const formatAddress = (address: string) => {
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
   };
 
-  const contractAddress = '0x1234567890abcdef1234567890abcdef12345678';
-
-  const steps = [
-    { title: 'Company Registered', completed: true },
-    { title: 'USDC Approved', completed: usdcApproved },
-    { title: 'Employees Enabled', completed: false },
-  ];
-
   return (
     <div className="min-h-screen bg-slate-50">
       <header className="border-b bg-white">
         <div className="max-w-7xl mx-auto px-6 py-4">
-          <h1 className="text-2xl font-semibold text-slate-900">PayFlow</h1>
+        <button
+  onClick={() => navigate('/dashboard')}
+  className="text-2xl font-semibold text-slate-900 hover:text-blue-600 transition-colors"
+>
+  PayFlow
+</button>
         </div>
       </header>
 
-      <main className="max-w-3xl mx-auto px-6 py-12">
-        {/* Progress Stepper */}
-        <div className="mb-12">
-          <ProgressStepper steps={steps} />
-        </div>
-
+      <main className="max-w-2xl mx-auto px-6 py-12">
         <div className="mb-8">
-          <h2 className="text-3xl font-bold text-slate-900 mb-2">Approve USDC for Payroll</h2>
-          <p className="text-slate-600">
-            The payroll contract needs permission to transfer USDC from your company wallet to pay employees.
-          </p>
+          <h2 className="text-3xl font-bold text-slate-900 mb-2">Register Your Company</h2>
+          <p className="text-slate-600">Set up your company profile to start managing payroll onchain</p>
         </div>
 
-        {/* Approval Details */}
-        <div className="space-y-6">
-          <Card className="border-blue-200 bg-blue-50/50">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <Shield className="w-5 h-5 text-blue-600" />
-                Security Notice
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-slate-700">
-                This approval allows the PayFlow smart contract to transfer USDC from your wallet when you run payroll. You maintain full control and can revoke this approval at any time.
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Approval Details</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between py-3 border-b">
-                <span className="text-slate-600">Your Wallet</span>
-                <div className="flex items-center gap-2">
-                  <Wallet className="w-4 h-4 text-slate-400" />
-                  <span className="font-medium text-slate-900">
-                    {walletAddress && formatAddress(walletAddress)}
-                  </span>
+        <Card className="mb-6 border-blue-200 bg-blue-50/50">
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                <Wallet className="w-5 h-5 text-blue-600" />
+              </div>
+              <div>
+                <div className="text-sm text-slate-600">Connected Wallet</div>
+                <div className="font-medium text-slate-900">
+                  {walletAddress && formatAddress(walletAddress)}
                 </div>
               </div>
+            </div>
+          </CardContent>
+        </Card>
 
-              <div className="flex items-center justify-between py-3 border-b">
-                <span className="text-slate-600">Token</span>
-                <span className="font-medium text-slate-900">USDC</span>
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Building2 className="w-5 h-5" />
+              Company Information
+            </CardTitle>
+            <CardDescription>
+              Enter your company details to get started with onchain payroll
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="space-y-2">
+                <Label htmlFor="name">Company Name</Label>
+                <Input
+                  id="name"
+                  type="text"
+                  placeholder="Acme Corporation"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  required
+                  className="h-11"
+                />
               </div>
 
-              <div className="flex items-center justify-between py-3 border-b">
-                <span className="text-slate-600">Network</span>
-                <span className="font-medium text-slate-900">{company?.fundingChain || 'Injective'}</span>
+              <div className="space-y-2">
+                <Label htmlFor="country">Country</Label>
+                <Input
+                  id="country"
+                  type="text"
+                  placeholder="Bolivia"
+                  value={formData.country}
+                  onChange={(e) => setFormData({ ...formData, country: e.target.value })}
+                  required
+                  className="h-11"
+                />
               </div>
 
-              <div className="flex items-center justify-between py-3 border-b">
-                <span className="text-slate-600">Contract Address</span>
-                <span className="font-mono text-sm text-slate-900">
-                  {formatAddress(contractAddress)}
-                </span>
+              <div className="space-y-2">
+                <Label htmlFor="fundingChain">Default Funding Chain</Label>
+                <Select
+                  value={formData.fundingChain}
+                  onValueChange={(value) => setFormData({ ...formData, fundingChain: value })}
+                >
+                  <SelectTrigger className="h-11">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Injective">Injective</SelectItem>
+                    <SelectItem value="Base">Base</SelectItem>
+                    <SelectItem value="Avalanche">Avalanche</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-sm text-slate-500 mt-2">
+                  Note: This MVP demo uses Injective blockchain
+                </p>
               </div>
 
-              <div className="flex items-center justify-between py-3">
-                <span className="text-slate-600">Approval Status</span>
-                <div className="flex items-center gap-2">
-                  {usdcApproved ? (
-                    <>
-                      <Check className="w-4 h-4 text-green-600" />
-                      <span className="text-green-600 font-medium">Approved</span>
-                    </>
-                  ) : (
-                    <span className="text-amber-600 font-medium">Pending Approval</span>
-                  )}
+              {error && (
+                <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-md p-3">
+                  {error}
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+              )}
 
-          {/* Approval Button */}
-          <Card className="border-slate-300">
-            <CardContent className="pt-6">
               <Button
-                onClick={handleApprove}
-                disabled={isApproving || usdcApproved}
-                className="w-full bg-blue-600 hover:bg-blue-700 h-12 text-lg"
+                type="submit"
+                className="w-full bg-blue-600 hover:bg-blue-700 h-11"
+                disabled={!formData.name || !formData.country || isSubmitting}
               >
-                {isApproving ? (
+                {isSubmitting ? (
                   <>
-                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                    Approving USDC...
-                  </>
-                ) : usdcApproved ? (
-                  <>
-                    <Check className="w-5 h-5 mr-2" />
-                    USDC Approved
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Registering...
                   </>
                 ) : (
-                  'Approve USDC'
+                  'Register Company'
                 )}
               </Button>
-              {!usdcApproved && (
-                <p className="text-sm text-slate-500 text-center mt-3">
-                  You'll be prompted to confirm this transaction in MetaMask
-                </p>
-              )}
-            </CardContent>
-          </Card>
-        </div>
+            </form>
+          </CardContent>
+        </Card>
       </main>
     </div>
   );

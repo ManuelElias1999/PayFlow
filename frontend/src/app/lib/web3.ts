@@ -1,7 +1,7 @@
-import { BrowserProvider, Contract } from "ethers";
-import { CONTRACTS } from "./contracts";
-import { usdcAbi } from "./abis/usdc";
-import { payrollAbi } from "./abis/payroll";
+import { BrowserProvider, Contract } from 'ethers';
+import { CONTRACTS } from './contracts';
+import { usdcAbi } from './abis/usdc';
+import { payrollAbi } from './abis/payroll';
 
 declare global {
   interface Window {
@@ -10,8 +10,16 @@ declare global {
 }
 
 export async function getProvider() {
-  if (!window.ethereum) throw new Error("MetaMask not found");
-  return new BrowserProvider(window.ethereum);
+  if (!window.ethereum) throw new Error('MetaMask not found');
+
+  const provider = new BrowserProvider(window.ethereum);
+  const network = await provider.getNetwork();
+
+  if (Number(network.chainId) !== 1439) {
+    throw new Error('Wrong network. Please switch to Injective EVM Testnet.');
+  }
+
+  return provider;
 }
 
 export async function getSigner() {

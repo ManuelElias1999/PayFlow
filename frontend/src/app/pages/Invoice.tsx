@@ -138,7 +138,12 @@ export const Invoice: React.FC = () => {
       <header className="border-b bg-white">
         <div className="max-w-4xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-semibold text-slate-900">PayFlow</h1>
+          <button
+            onClick={() => navigate('/dashboard')}
+            className="text-2xl font-semibold text-slate-900 hover:text-blue-600 transition-colors"
+          >
+            PayFlow
+          </button>
             <div className="flex gap-2">
               <Button variant="outline" size="sm" onClick={handleCopyLink}>
                 {copied ? (

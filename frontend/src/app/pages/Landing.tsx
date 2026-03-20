@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router';
 import { useApp } from '../context/AppContext';
 import { Button } from '../components/ui/button';
@@ -6,52 +6,77 @@ import { Card, CardDescription, CardHeader, CardTitle } from '../components/ui/c
 import { Users, DollarSign, FileText, Wallet, Loader2 } from 'lucide-react';
 import { getAccount, getPayrollContract, getUsdcContract } from '../lib/web3';
 import { CONTRACTS } from '../lib/contracts';
+import { switchToInjectiveTestnet } from '../lib/networks.ts';
+
+declare global {
+  interface Window {
+    ethereum?: any;
+  }
+}
 
 export const Landing: React.FC = () => {
   const { walletConnected, connectWallet } = useApp();
   const navigate = useNavigate();
   const [isChecking, setIsChecking] = useState(false);
 
-  useEffect(() => {
-    const checkFlow = async () => {
-      if (!walletConnected) return;
+  const checkFlow = useCallback(async () => {
+    try {
+      setIsChecking(true);
 
-      try {
-        setIsChecking(true);
+      const account = await getAccount();
+      const payroll = await getPayrollContract(false);
+      const usdc = await getUsdcContract(false);
 
-        const account = await getAccount();
-        const payroll = await getPayrollContract(false);
-        const usdc = await getUsdcContract(false);
+      const company = await payroll.companies(account);
 
-        const company = await payroll.companies(account);
-
-        if (!company.isRegistered) {
-          navigate('/onboarding');
-          return;
-        }
-
-        const allowance = await usdc.allowance(account, CONTRACTS.payroll);
-
-        if (allowance > 0n) {
-          navigate('/dashboard');
-        } else {
-          navigate('/approve');
-        }
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setIsChecking(false);
+      if (!company.isRegistered) {
+        navigate('/onboarding');
+        return;
       }
+
+      const allowance = await usdc.allowance(account, CONTRACTS.payroll);
+
+      if (allowance > 0n) {
+        navigate('/dashboard');
+      } else {
+        navigate('/approve');
+      }
+    } catch (err) {
+      console.error('Contract read failed. Are you on the correct network?', err);
+    } finally {
+      setIsChecking(false);
+    }
+  }, [navigate]);
+
+  useEffect(() => {
+    if (!walletConnected) return;
+    checkFlow();
+  }, [walletConnected, checkFlow]);
+
+  useEffect(() => {
+    if (!window.ethereum) return;
+
+    const handleChainChanged = () => {
+      window.location.reload();
     };
 
-    checkFlow();
-  }, [walletConnected, navigate]);
+    window.ethereum.on?.('chainChanged', handleChainChanged);
+
+    return () => {
+      window.ethereum?.removeListener?.('chainChanged', handleChainChanged);
+    };
+  }, []);
 
   const handleConnect = async () => {
     try {
+      setIsChecking(true);
       await connectWallet();
+      await switchToInjectiveTestnet();
+      await checkFlow();
     } catch (err) {
       console.error(err);
+    } finally {
+      setIsChecking(false);
     }
   };
 
@@ -59,7 +84,12 @@ export const Landing: React.FC = () => {
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
       <header className="border-b bg-white/80 backdrop-blur-sm">
         <div className="max-w-7xl mx-auto px-6 py-4">
-          <h1 className="text-2xl font-semibold text-slate-900">PayFlow</h1>
+        <button
+          onClick={() => navigate('/dashboard')}
+          className="text-2xl font-semibold text-slate-900 hover:text-blue-600 transition-colors"
+        >
+          PayFlow
+        </button>
         </div>
       </header>
 
@@ -134,23 +164,6 @@ export const Landing: React.FC = () => {
               </CardDescription>
             </CardHeader>
           </Card>
-        </div>
-
-        <div className="mt-20 pt-12 border-t border-slate-200">
-          <div className="grid md:grid-cols-3 gap-8 text-center">
-            <div>
-              <div className="text-3xl font-bold text-slate-900 mb-2">100%</div>
-              <div className="text-slate-600">Onchain Transparency</div>
-            </div>
-            <div>
-              <div className="text-3xl font-bold text-slate-900 mb-2">Fast</div>
-              <div className="text-slate-600">Payroll Settlement</div>
-            </div>
-            <div>
-              <div className="text-3xl font-bold text-slate-900 mb-2">USDC</div>
-              <div className="text-slate-600">Stable Payments</div>
-            </div>
-          </div>
         </div>
       </section>
     </div>
