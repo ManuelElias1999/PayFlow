@@ -2,43 +2,105 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { useApp } from '../context/AppContext';
 import { Button } from '../components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { ProgressStepper } from '../components/ProgressStepper';
 import { Check, Loader2, Shield, Wallet } from 'lucide-react';
+import { CONTRACTS } from '../lib/contracts';
+import { getAccount, getPayrollContract, getUsdcContract } from '../lib/web3';
 
 export const Approve: React.FC = () => {
-  const { walletAddress, company, usdcApproved, approveUSDC, walletConnected } = useApp();
+  const { walletAddress, walletConnected } = useApp();
   const navigate = useNavigate();
+
+  const [company, setCompany] = useState<any>(null);
+  const [usdcApproved, setUsdcApproved] = useState(false);
   const [isApproving, setIsApproving] = useState(false);
+  const [isChecking, setIsChecking] = useState(true);
+  const [error, setError] = useState('');
+
+  const APPROVE_AMOUNT = 100000000000n; // 100,000 USDC with 6 decimals
 
   useEffect(() => {
-    if (!walletConnected || !company) {
-      navigate('/');
-    } else if (usdcApproved) {
+    const loadData = async () => {
+      if (!walletConnected) {
+        navigate('/');
+        return;
+      }
+
+      try {
+        setIsChecking(true);
+
+        const account = await getAccount();
+        const payroll = await getPayrollContract(false);
+        const usdc = await getUsdcContract(false);
+
+        const companyData = await payroll.companies(account);
+
+        if (!companyData.isRegistered) {
+          navigate('/onboarding');
+          return;
+        }
+
+        const allowance = await usdc.allowance(account, CONTRACTS.payroll);
+
+        setCompany(companyData);
+        setUsdcApproved(allowance > 0n);
+      } catch (err) {
+        console.error('Error loading approval page:', err);
+        setError('Failed to load approval data');
+      } finally {
+        setIsChecking(false);
+      }
+    };
+
+    loadData();
+  }, [walletConnected, navigate]);
+
+  useEffect(() => {
+    if (usdcApproved) {
       navigate('/dashboard');
     }
-  }, [walletConnected, company, usdcApproved, navigate]);
+  }, [usdcApproved, navigate]);
 
-  const handleApprove = () => {
-    setIsApproving(true);
-    approveUSDC();
-    setTimeout(() => {
-      setIsApproving(false);
+  const handleApprove = async () => {
+    try {
+      setError('');
+      setIsApproving(true);
+
+      const usdc = await getUsdcContract(true);
+      const tx = await usdc.approve(CONTRACTS.payroll, APPROVE_AMOUNT);
+      await tx.wait();
+
+      setUsdcApproved(true);
       navigate('/dashboard');
-    }, 1500);
+    } catch (err: any) {
+      console.error(err);
+      setError(err?.reason || err?.message || 'Failed to approve USDC');
+    } finally {
+      setIsApproving(false);
+    }
   };
 
   const formatAddress = (address: string) => {
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
   };
 
-  const contractAddress = '0x1234567890abcdef1234567890abcdef12345678';
-
   const steps = [
     { title: 'Company Registered', completed: true },
     { title: 'USDC Approved', completed: usdcApproved },
-    { title: 'Employees Enabled', completed: false },
+    { title: 'Employees Enabled', completed: usdcApproved },
   ];
+
+  if (isChecking) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="flex items-center gap-3 text-slate-700">
+          <Loader2 className="w-5 h-5 animate-spin" />
+          Loading approval data...
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -49,7 +111,6 @@ export const Approve: React.FC = () => {
       </header>
 
       <main className="max-w-3xl mx-auto px-6 py-12">
-        {/* Progress Stepper */}
         <div className="mb-12">
           <ProgressStepper steps={steps} />
         </div>
@@ -61,7 +122,6 @@ export const Approve: React.FC = () => {
           </p>
         </div>
 
-        {/* Approval Details */}
         <div className="space-y-6">
           <Card className="border-blue-200 bg-blue-50/50">
             <CardHeader>
@@ -72,7 +132,8 @@ export const Approve: React.FC = () => {
             </CardHeader>
             <CardContent>
               <p className="text-sm text-slate-700">
-                This approval allows the PayFlow smart contract to transfer USDC from your wallet when you run payroll. You maintain full control and can revoke this approval at any time.
+                This approval allows the PayFlow smart contract to transfer USDC from your wallet when you run payroll.
+                You maintain full control and can revoke this approval at any time.
               </p>
             </CardContent>
           </Card>
@@ -99,13 +160,15 @@ export const Approve: React.FC = () => {
 
               <div className="flex items-center justify-between py-3 border-b">
                 <span className="text-slate-600">Network</span>
-                <span className="font-medium text-slate-900">{company?.fundingChain || 'Injective'}</span>
+                <span className="font-medium text-slate-900">
+                  {company?.defaultFundingChain || 'Injective'}
+                </span>
               </div>
 
               <div className="flex items-center justify-between py-3 border-b">
                 <span className="text-slate-600">Contract Address</span>
                 <span className="font-mono text-sm text-slate-900">
-                  {formatAddress(contractAddress)}
+                  {formatAddress(CONTRACTS.payroll)}
                 </span>
               </div>
 
@@ -125,7 +188,12 @@ export const Approve: React.FC = () => {
             </CardContent>
           </Card>
 
-          {/* Approval Button */}
+          {error && (
+            <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-md p-3">
+              {error}
+            </div>
+          )}
+
           <Card className="border-slate-300">
             <CardContent className="pt-6">
               <Button
@@ -147,6 +215,7 @@ export const Approve: React.FC = () => {
                   'Approve USDC'
                 )}
               </Button>
+
               {!usdcApproved && (
                 <p className="text-sm text-slate-500 text-center mt-3">
                   You'll be prompted to confirm this transaction in MetaMask

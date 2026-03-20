@@ -4,7 +4,7 @@ import { LogOut, Wallet } from 'lucide-react';
 import { useNavigate } from 'react-router';
 
 export const Header: React.FC = () => {
-  const { walletAddress, company, disconnectWallet } = useApp();
+  const { walletAddress, disconnectWallet } = useApp();
   const navigate = useNavigate();
 
   const handleDisconnect = () => {
@@ -20,25 +20,8 @@ export const Header: React.FC = () => {
     <header className="border-b bg-white">
       <div className="max-w-7xl mx-auto px-6 py-4">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-8">
-            <h1 className="text-2xl font-semibold text-slate-900">PayFlow</h1>
-            {company && (
-              <div className="flex items-center gap-6 text-sm">
-                <div className="flex items-center gap-2">
-                  <span className="text-slate-500">Company:</span>
-                  <span className="font-medium text-slate-900">{company.name}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-slate-500">Chain:</span>
-                  <span className="font-medium text-slate-900">{company.fundingChain}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-slate-500">Country:</span>
-                  <span className="font-medium text-slate-900">{company.country}</span>
-                </div>
-              </div>
-            )}
-          </div>
+          <h1 className="text-2xl font-semibold text-slate-900">PayFlow</h1>
+
           {walletAddress && (
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-2 px-3 py-2 bg-slate-50 rounded-lg">
@@ -47,6 +30,7 @@ export const Header: React.FC = () => {
                   {formatAddress(walletAddress)}
                 </span>
               </div>
+
               <Button
                 variant="ghost"
                 size="sm"

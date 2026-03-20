@@ -1,25 +1,124 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router';
-import { useApp } from '../context/AppContext';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
-import { ExternalLink, Copy, CheckCircle, FileText, Building2, User, Wallet, Calendar, Hash } from 'lucide-react';
+import {
+  ExternalLink,
+  Copy,
+  CheckCircle,
+  FileText,
+  Building2,
+  User,
+  Wallet,
+  Calendar,
+  Hash,
+  Loader2,
+} from 'lucide-react';
 import { toast } from 'sonner';
+import { getPayrollContract } from '../lib/web3';
+import { fromUsdcAmount } from '../lib/usdc';
+
+type InvoiceData = {
+  id: number;
+  companyName: string;
+  employeeName: string;
+  role: string;
+  employeeWallet: string;
+  amount: string;
+  token: string;
+  network: string;
+  paymentDate: number;
+  status: string;
+  period: number;
+  employer: string;
+};
 
 export const Invoice: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const { invoices } = useApp();
   const navigate = useNavigate();
-  const [copied, setCopied] = useState(false);
 
-  const invoice = invoices.find((inv) => inv.id === id);
+  const [copied, setCopied] = useState(false);
+  const [invoice, setInvoice] = useState<InvoiceData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (!invoice && invoices.length > 0) {
-      navigate('/dashboard');
+    const loadInvoice = async () => {
+      if (!id) {
+        navigate('/dashboard');
+        return;
+      }
+
+      try {
+        setIsLoading(true);
+
+        const payroll = await getPayrollContract(false);
+        const payment = await payroll.getPayment(id);
+        const company = await payroll.companies(payment.employer);
+        const employee = await payroll.getEmployee(payment.employer, payment.employeeId);
+
+        const invoiceData: InvoiceData = {
+          id: Number(payment.id),
+          companyName: company.name,
+          employeeName: employee.name,
+          role: employee.role,
+          employeeWallet: payment.employeeWallet,
+          amount: fromUsdcAmount(payment.amount),
+          token: 'USDC',
+          network: 'Injective',
+          paymentDate: Number(payment.timestamp),
+          status: 'Paid',
+          period: Number(payment.period),
+          employer: payment.employer,
+        };
+
+        setInvoice(invoiceData);
+      } catch (err) {
+        console.error(err);
+        toast.error('Invoice not found');
+        navigate('/dashboard');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadInvoice();
+  }, [id, navigate]);
+
+  const handleCopyLink = async () => {
+    try {
+      const url = window.location.href;
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      toast.success('Invoice link copied to clipboard');
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      toast.error('Failed to copy link');
     }
-  }, [invoice, invoices, navigate]);
+  };
+
+  const handleViewExplorer = () => {
+    if (!invoice) return;
+    window.open(
+      `https://testnet.blockscout.injective.network/address/${invoice.employer}`,
+      '_blank'
+    );
+  };
+
+  const formatAddress = (address: string) => {
+    return `${address.slice(0, 10)}...${address.slice(-8)}`;
+  };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="flex items-center gap-3 text-slate-700">
+          <Loader2 className="w-5 h-5 animate-spin" />
+          Loading invoice...
+        </div>
+      </div>
+    );
+  }
 
   if (!invoice) {
     return (
@@ -34,36 +133,14 @@ export const Invoice: React.FC = () => {
     );
   }
 
-  const handleCopyLink = () => {
-    const url = window.location.href;
-    navigator.clipboard.writeText(url);
-    setCopied(true);
-    toast.success('Invoice link copied to clipboard');
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  const handleViewExplorer = () => {
-    // Mock explorer link
-    window.open(`https://explorer.injective.network/tx/${invoice.transactionHash}`, '_blank');
-  };
-
-  const formatAddress = (address: string) => {
-    return `${address.slice(0, 10)}...${address.slice(-8)}`;
-  };
-
   return (
     <div className="min-h-screen bg-slate-50">
-      {/* Header */}
       <header className="border-b bg-white">
         <div className="max-w-4xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <h1 className="text-2xl font-semibold text-slate-900">PayFlow</h1>
             <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleCopyLink}
-              >
+              <Button variant="outline" size="sm" onClick={handleCopyLink}>
                 {copied ? (
                   <>
                     <CheckCircle className="w-4 h-4 mr-2" />
@@ -76,11 +153,7 @@ export const Invoice: React.FC = () => {
                   </>
                 )}
               </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleViewExplorer}
-              >
+              <Button variant="outline" size="sm" onClick={handleViewExplorer}>
                 <ExternalLink className="w-4 h-4 mr-2" />
                 View on Explorer
               </Button>
@@ -89,7 +162,6 @@ export const Invoice: React.FC = () => {
         </div>
       </header>
 
-      {/* Invoice Content */}
       <main className="max-w-4xl mx-auto px-6 py-12">
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-3">
@@ -108,7 +180,6 @@ export const Invoice: React.FC = () => {
         </div>
 
         <div className="space-y-6">
-          {/* Company & Employee Info */}
           <div className="grid md:grid-cols-2 gap-6">
             <Card>
               <CardHeader className="pb-3">
@@ -136,7 +207,6 @@ export const Invoice: React.FC = () => {
             </Card>
           </div>
 
-          {/* Payment Details */}
           <Card>
             <CardHeader>
               <CardTitle>Payment Details</CardTitle>
@@ -155,7 +225,7 @@ export const Invoice: React.FC = () => {
               <div className="flex items-center justify-between py-3 border-b">
                 <span className="text-slate-600">Amount</span>
                 <span className="text-2xl font-bold text-slate-900">
-                  ${invoice.amount.toLocaleString()} {invoice.token}
+                  ${invoice.amount} {invoice.token}
                 </span>
               </div>
 
@@ -165,12 +235,17 @@ export const Invoice: React.FC = () => {
               </div>
 
               <div className="flex items-center justify-between py-3 border-b">
+                <span className="text-slate-600">Payroll Period</span>
+                <span className="font-medium text-slate-900">{invoice.period}</span>
+              </div>
+
+              <div className="flex items-center justify-between py-3 border-b">
                 <div className="flex items-center gap-2 text-slate-600">
                   <Calendar className="w-4 h-4" />
                   <span>Payment Date</span>
                 </div>
                 <span className="font-medium text-slate-900">
-                  {new Date(invoice.paymentDate).toLocaleDateString('en-US', {
+                  {new Date(invoice.paymentDate * 1000).toLocaleDateString('en-US', {
                     month: 'long',
                     day: 'numeric',
                     year: 'numeric',
@@ -183,11 +258,11 @@ export const Invoice: React.FC = () => {
               <div className="flex items-start justify-between py-3">
                 <div className="flex items-center gap-2 text-slate-600">
                   <Hash className="w-4 h-4" />
-                  <span>Transaction Hash</span>
+                  <span>Employer Contract Reference</span>
                 </div>
                 <div className="text-right">
                   <div className="font-mono text-sm text-slate-900 mb-1">
-                    {formatAddress(invoice.transactionHash)}
+                    {formatAddress(invoice.employer)}
                   </div>
                   <Button
                     variant="link"
@@ -202,7 +277,6 @@ export const Invoice: React.FC = () => {
             </CardContent>
           </Card>
 
-          {/* Verification Notice */}
           <Card className="border-blue-200 bg-blue-50/30">
             <CardContent className="pt-6">
               <div className="flex items-start gap-3">
@@ -212,14 +286,14 @@ export const Invoice: React.FC = () => {
                 <div>
                   <div className="font-medium text-slate-900 mb-1">Verified Onchain Payment</div>
                   <p className="text-sm text-slate-600">
-                    This payment has been executed and verified on the Injective blockchain. All transaction details are permanently recorded and publicly verifiable.
+                    This payment has been executed and recorded on the Injective blockchain. The payroll
+                    data is publicly verifiable through the smart contract.
                   </p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          {/* Footer Note */}
           <div className="text-center text-sm text-slate-500 pt-6">
             This invoice was generated by PayFlow, an onchain payroll platform on Injective
           </div>
