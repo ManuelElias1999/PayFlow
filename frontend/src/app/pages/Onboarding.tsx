@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Wallet, Building2, Loader2 } from 'lucide-react';
 import { getPayrollContract, getAccount } from '../lib/web3';
+import { toast } from 'sonner';
 
 export const Onboarding: React.FC = () => {
   const { walletAddress, walletConnected } = useApp();
@@ -62,6 +63,7 @@ export const Onboarding: React.FC = () => {
       );
 
       await tx.wait();
+      toast.success('Company registered successfully');
       navigate('/approve');
     } catch (err: any) {
       console.error(err);

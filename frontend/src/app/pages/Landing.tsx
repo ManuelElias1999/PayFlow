@@ -128,6 +128,16 @@ export const Landing: React.FC = () => {
           </Button>
         </div>
 
+        <div className="mt-4">
+          <Button
+            variant="outline"
+            onClick={() => navigate('/pricing')}
+            className="border-slate-300"
+          >
+            View Pricing
+          </Button>
+        </div>
+        
         <div className="grid md:grid-cols-3 gap-6 mt-16">
           <Card className="border-slate-200 shadow-sm hover:shadow-md transition-shadow">
             <CardHeader>

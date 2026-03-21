@@ -7,6 +7,7 @@ import { ProgressStepper } from '../components/ProgressStepper';
 import { Check, Loader2, Shield, Wallet } from 'lucide-react';
 import { CONTRACTS } from '../lib/contracts';
 import { getAccount, getPayrollContract, getUsdcContract } from '../lib/web3';
+import { toast } from 'sonner';
 
 export const Approve: React.FC = () => {
   const { walletAddress, walletConnected } = useApp();
@@ -72,6 +73,7 @@ export const Approve: React.FC = () => {
       await tx.wait();
 
       setUsdcApproved(true);
+      toast.success('USDC approval successful');
       navigate('/dashboard');
     } catch (err: any) {
       console.error(err);

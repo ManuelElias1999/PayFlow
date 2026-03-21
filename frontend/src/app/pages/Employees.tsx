@@ -15,6 +15,7 @@ import { getAccount, getPayrollContract, getUsdcContract } from '../lib/web3';
 import { CONTRACTS } from '../lib/contracts';
 import { fromUsdcAmount, toUsdcAmount } from '../lib/usdc';
 import { saveEmployeeEmail } from '../lib/api';
+import { toast } from 'sonner';
 
 type ChainEmployee = {
   id: number;
@@ -215,6 +216,7 @@ export const Employees: React.FC = () => {
 
       await refreshEmployees();
       setIsModalOpen(false);
+      toast.success(selectedEmployee ? 'Employee updated successfully' : 'Employee added successfully');
     } catch (err: any) {
       console.error(err);
       setError(err?.reason || err?.message || 'Failed to save employee');
@@ -233,6 +235,11 @@ export const Employees: React.FC = () => {
       );
       await tx.wait();
       await refreshEmployees();
+      toast.success(
+        employee.status === 'active'
+          ? 'Employee marked as inactive'
+          : 'Employee marked as active'
+      );
     } catch (err: any) {
       console.error(err);
       setError(err?.reason || err?.message || 'Failed to update employee status');

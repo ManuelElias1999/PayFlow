@@ -6,6 +6,7 @@ import { Dashboard } from './pages/Dashboard';
 import { Employees } from './pages/Employees';
 import { Payroll } from './pages/Payroll';
 import { Invoice } from './pages/Invoice';
+import { Pricing } from './pages/Pricing';
 
 export const router = createBrowserRouter([
   {
@@ -16,6 +17,9 @@ export const router = createBrowserRouter([
     path: '/onboarding',
     Component: Onboarding,
   },
+  { 
+    path: '/pricing', 
+    Component: Pricing },
   {
     path: '/approve',
     Component: Approve,

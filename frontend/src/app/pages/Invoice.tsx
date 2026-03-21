@@ -144,7 +144,14 @@ export const Invoice: React.FC = () => {
           >
             PayFlow
           </button>
-            <div className="flex gap-2">
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate('/dashboard')}
+            >
+              Back to Dashboard
+            </Button>
               <Button variant="outline" size="sm" onClick={handleCopyLink}>
                 {copied ? (
                   <>

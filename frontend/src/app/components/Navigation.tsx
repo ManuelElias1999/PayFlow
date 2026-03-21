@@ -1,5 +1,5 @@
 import { useLocation, useNavigate } from 'react-router';
-import { LayoutDashboard, Users, DollarSign } from 'lucide-react';
+import { LayoutDashboard, Users, DollarSign, BadgeDollarSign } from 'lucide-react';
 
 export const Navigation: React.FC = () => {
   const location = useLocation();
@@ -9,6 +9,7 @@ export const Navigation: React.FC = () => {
     { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { path: '/employees', label: 'Employees', icon: Users },
     { path: '/payroll', label: 'Payroll', icon: DollarSign },
+    { path: '/pricing', label: 'Pricing', icon: BadgeDollarSign },
   ];
 
   return (
@@ -18,6 +19,7 @@ export const Navigation: React.FC = () => {
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = location.pathname === item.path;
+
             return (
               <button
                 key={item.path}

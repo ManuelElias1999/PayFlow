@@ -214,7 +214,7 @@ export const Payroll: React.FC = () => {
       }
   
       await refreshData();
-      toast.success(`Payroll completed! Paid ${activeEmployees.length} employees`);
+      toast.success(`Payroll completed successfully. Paid ${activeEmployees.length} employees and triggered invoice emails.`);
     } catch (err: any) {
       console.error(err);
       toast.error(err?.reason || err?.message || 'Failed to run payroll');
