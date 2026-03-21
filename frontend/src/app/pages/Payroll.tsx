@@ -9,9 +9,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { Badge } from '../components/ui/badge';
 import { Play, CheckCircle, DollarSign, Users, Activity, FileText, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { getEmployeeEmail, sendInvoiceEmail } from '../lib/api';
 import { getAccount, getPayrollContract, getUsdcContract } from '../lib/web3';
 import { CONTRACTS } from '../lib/contracts';
 import { fromUsdcAmount } from '../lib/usdc';
+
 
 type ChainEmployee = {
   id: number;
@@ -170,16 +172,47 @@ export const Payroll: React.FC = () => {
       toast.error('No active employees to pay');
       return;
     }
-
+  
     try {
       setIsRunning(true);
-
+  
+      const account = await getAccount();
       const payroll = await getPayrollContract(true);
+      const payrollRead = await getPayrollContract(false);
+  
+      const beforeCount = Number(await payrollRead.paymentCount());
       const period = Date.now();
-
+  
       const tx = await payroll.runPayroll(period);
       await tx.wait();
-
+  
+      const afterCount = Number(await payrollRead.paymentCount());
+  
+      for (let paymentId = beforeCount + 1; paymentId <= afterCount; paymentId++) {
+        const payment = await payrollRead.getPayment(paymentId);
+        const employee = await payrollRead.getEmployee(account, payment.employeeId);
+        const companyData = await payrollRead.companies(account);
+  
+        try {
+          const emailResponse = await getEmployeeEmail(account, Number(payment.employeeId));
+          const emailRecord = emailResponse.data;
+  
+          if (emailRecord?.email) {
+            await sendInvoiceEmail({
+              email: emailRecord.email,
+              companyName: companyData.name,
+              employeeName: employee.name,
+              amount: fromUsdcAmount(payment.amount),
+              period: Number(payment.period),
+              invoiceUrl: `http://localhost:5173/invoice/${paymentId}`,
+              employeeWallet: payment.employeeWallet,
+            });
+          }
+        } catch (emailErr) {
+          console.error(`Failed to send email for payment ${paymentId}:`, emailErr);
+        }
+      }
+  
       await refreshData();
       toast.success(`Payroll completed! Paid ${activeEmployees.length} employees`);
     } catch (err: any) {

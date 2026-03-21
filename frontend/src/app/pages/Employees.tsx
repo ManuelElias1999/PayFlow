@@ -14,6 +14,7 @@ import { Plus, Edit, CheckCircle, XCircle, Loader2 } from 'lucide-react';
 import { getAccount, getPayrollContract, getUsdcContract } from '../lib/web3';
 import { CONTRACTS } from '../lib/contracts';
 import { fromUsdcAmount, toUsdcAmount } from '../lib/usdc';
+import { saveEmployeeEmail } from '../lib/api';
 
 type ChainEmployee = {
   id: number;
@@ -168,6 +169,18 @@ export const Employees: React.FC = () => {
           salary
         );
         await tx.wait();
+        
+        const account = await getAccount();
+        
+        if (formData.email) {
+          await saveEmployeeEmail({
+            companyWallet: account,
+            employeeId: selectedEmployee.id,
+            employeeWallet: formData.wallet,
+            employeeName: formData.name,
+            email: formData.email,
+          });
+        }
 
         if (selectedEmployee.status !== formData.status) {
           const tx2 = await payroll.setEmployeeStatus(
@@ -184,6 +197,20 @@ export const Employees: React.FC = () => {
           salary
         );
         await tx.wait();
+        
+        const account = await getAccount();
+        const ids = await payroll.getEmployeeIdsByCompany(account);
+        const newEmployeeId = Number(ids[ids.length - 1]);
+        
+        if (formData.email) {
+          await saveEmployeeEmail({
+            companyWallet: account,
+            employeeId: newEmployeeId,
+            employeeWallet: formData.wallet,
+            employeeName: formData.name,
+            email: formData.email,
+          });
+        }
       }
 
       await refreshEmployees();
