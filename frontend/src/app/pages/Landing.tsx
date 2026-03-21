@@ -7,6 +7,7 @@ import { Users, DollarSign, FileText, Wallet, Loader2 } from 'lucide-react';
 import { getAccount, getPayrollContract, getUsdcContract } from '../lib/web3';
 import { CONTRACTS } from '../lib/contracts';
 import { switchToInjectiveTestnet } from '../lib/networks.ts';
+import React from 'react';
 
 declare global {
   interface Window {
@@ -82,14 +83,22 @@ export const Landing: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
-      <header className="border-b bg-white/80 backdrop-blur-sm">
-        <div className="max-w-7xl mx-auto px-6 py-4">
-        <button
-          onClick={() => navigate('/dashboard')}
-          className="text-2xl font-semibold text-slate-900 hover:text-blue-600 transition-colors"
-        >
-          PayFlow
-        </button>
+      <header className="border-b bg-white/80 backdrop-blur-sm relative">
+        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+          <button
+            onClick={() => navigate('/dashboard')}
+            className="text-2xl font-semibold text-slate-900 hover:text-blue-600 transition-colors"
+          >
+            PayFlow
+          </button>
+          <div className="flex items-center">
+            <img
+              src="/images/full-injective-logo.webp"
+              alt="Injective Blockchain Logo"
+              className="h-10 w-auto object-contain"
+              style={{ minWidth: 90 }}
+            />
+          </div>
         </div>
       </header>
 
