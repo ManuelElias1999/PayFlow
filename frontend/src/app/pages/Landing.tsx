@@ -8,6 +8,7 @@ import { getAccount, getPayrollContract, getUsdcContract } from '../lib/web3';
 import { CONTRACTS } from '../lib/contracts';
 import { switchToInjectiveTestnet } from '../lib/networks.ts';
 import React from 'react';
+import injectiveLogo from '@images/full-injective-logo.webp';
 
 declare global {
   interface Window {
@@ -93,7 +94,7 @@ export const Landing: React.FC = () => {
           </button>
           <div className="flex items-center">
             <img
-              src="/images/full-injective-logo.webp"
+              src={injectiveLogo}
               alt="Injective Blockchain Logo"
               className="h-10 w-auto object-contain"
               style={{ minWidth: 90 }}
