@@ -14,8 +14,8 @@ import { Plus, Edit, CheckCircle, XCircle, Loader2 } from 'lucide-react';
 import { getAccount, getPayrollContract, getUsdcContract } from '../lib/web3';
 import { CONTRACTS } from '../lib/contracts';
 import { fromUsdcAmount, toUsdcAmount } from '../lib/usdc';
-import { saveEmployeeEmail } from '../lib/api';
 import { toast } from 'sonner';
+import { saveEmployeeEmail, getEmployeeEmail } from '../lib/api';
 
 type ChainEmployee = {
   id: number;
@@ -79,15 +79,24 @@ export const Employees: React.FC = () => {
         const chainEmployees = await Promise.all(
           ids.map(async (id: bigint) => {
             const emp = await payroll.getEmployee(account, id);
+        
+            let email = '';
+            try {
+              const emailResponse = await getEmployeeEmail(account, Number(emp.id));
+              email = emailResponse?.data?.email || '';
+            } catch (err) {
+              console.error(`Failed to fetch email for employee ${emp.id}:`, err);
+            }
+        
             return {
               id: Number(emp.id),
               name: emp.name,
-              email: '',
+              email,
               wallet: emp.wallet,
               role: emp.role,
               salary: fromUsdcAmount(emp.salary),
               status: emp.active ? 'active' : 'inactive',
-            } as ChainEmployee;
+            };
           })
         );
 
@@ -111,15 +120,24 @@ export const Employees: React.FC = () => {
     const chainEmployees = await Promise.all(
       ids.map(async (id: bigint) => {
         const emp = await payroll.getEmployee(account, id);
+    
+        let email = '';
+        try {
+          const emailResponse = await getEmployeeEmail(account, Number(emp.id));
+          email = emailResponse?.data?.email || '';
+        } catch (err) {
+          console.error(`Failed to fetch email for employee ${emp.id}:`, err);
+        }
+    
         return {
           id: Number(emp.id),
           name: emp.name,
-          email: '',
+          email,
           wallet: emp.wallet,
           role: emp.role,
           salary: fromUsdcAmount(emp.salary),
           status: emp.active ? 'active' : 'inactive',
-        } as ChainEmployee;
+        };
       })
     );
 
