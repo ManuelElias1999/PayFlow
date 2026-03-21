@@ -278,3 +278,7 @@ PayFlow is an onchain payroll MVP built around a simple but powerful idea:
 **Companies should be able to manage employees and pay salaries in USDC on Injective, with payroll records that are transparent, verifiable, and programmable.**
 
 Injective is the right chain for this because it is built for finance, supports native EVM development, and is directly moving toward native USDC and CCTP support, which matches PayFlow’s long-term roadmap for cross-chain payroll funding and Injective-native settlement.
+
+<p align="center">
+  <img src="frontend/images/usdc-CCTP.png" alt="Coming Soon: USDC and CCTP on Injective Blockchain" width="600"/>
+</p>
