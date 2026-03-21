@@ -1,5 +1,12 @@
 # PayFlow
 
+🌐 **Try PayFlow Live!**
+
+You can experience the PayFlow platform in action right now:
+
+- **Frontend (App):** [https://pay-flow-green.vercel.app/](https://pay-flow-green.vercel.app/)
+- **Backend (API):** [https://payflow-backend-hrw0.onrender.com](https://payflow-backend-hrw0.onrender.com)
+
 ## Onchain Payroll in USDC on Injective
 
 PayFlow is an onchain payroll platform that allows companies to manage employees and execute salary payments in **USDC on Injective**. It is designed for modern teams that need a more transparent, programmable, and finance-native way to handle payroll operations.
